@@ -1,5 +1,3 @@
-
-		
 http://180.173.154.233:7777/iptv/live/1000.json?key=txipt
 http://222.86.15.171:9999/iptv/live/1000.json?key=txipt
 http://58.46.29.13:9999/iptv/live/1000.json?key=txipt
