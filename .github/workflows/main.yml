@@ -1,53 +1,59 @@
-name: IPTV 酒店源自动扫描与转换
+name: IPTV 酒店源全流程
 
 on:
   schedule:
     - cron: '0 20 * * *' 
-  workflow_dispatch:      
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120 
+    timeout-minutes: 150 # 扫描耗时较长，稍微放宽时间
 
     steps:
     - name: 检出代码
       uses: actions/checkout@v4
+      with:
+        # 必须设置为 0 获取完整历史，否则 rebase 可能会失败
+        fetch-depth: 0 
 
-    - name: 设置 Python 环境
+    - name: 环境准备
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        # 移除了 cache: 'pip'，因为你没有 requirements.txt
 
-    - name: 安装必要依赖
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
+    - name: 安装依赖
+      run: pip install requests
 
-    - name: 确保目录存在
-      run: |
-        mkdir -p py/iptv_results
+    - name: 目录初始化
+      run: mkdir -p py/iptv_results
 
-    - name: 执行扫描脚本 (scan.py)
-      run: |
-        # 确保 1000.txt 存在，如果不存在则创建一个空的防止报错
-        touch py/1000.txt
-        python -u py/scan.py
+    - name: 1. 执行扫描 (scan.py)
+      run: python -u py/scan.py
 
-    - name: 执行转换补全脚本 (convert.py)
-      run: |
-        python -u py/convert.py
+    - name: 2. 执行转换 (convert.py)
+      run: python -u py/convert.py
 
-    - name: 提交并推送结果
+    - name: 3. 执行清洗与测速 (clean_hotel.py)
+      run: python -u py/clean_hotel.py
+
+    - name: 提交并推送结果 (解决冲突版)
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
+        
+        # 暂存所有修改
         git add py/
-        # 检查是否有文件变动，防止空提交报错
+        
+        # 只有在有变动时才处理
         if git diff --staged --quiet; then
-          echo "没有检测到任何文件变动，跳过推送。"
+          echo "没有变动，跳过。"
         else
           git commit -m "自动更新: $(date +'%Y-%m-%d %H:%M:%S')"
-          git push
+          
+          # 核心：先拉取远程变化并变基，解决 Push 被拒绝的问题
+          git pull --rebase origin main
+          
+          # 推送
+          git push origin main
         fi
