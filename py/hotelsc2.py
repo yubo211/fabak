@@ -2,8 +2,8 @@ import re
 import os
 
 # 配置路径
-input_file = '/volume1/web/2222.txt'
-output_file = '/volume1/web/links.txt'
+input_file = 'py/2222.txt'
+output_file = 'py/links.txt'
 
 # 固定模板：ID 锁定为 1000
 url_template = "http://{ip_port}/iptv/live/1000.json?key=txipt"
