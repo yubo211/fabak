@@ -4,9 +4,9 @@ import re
 from urllib.parse import urlparse
 
 # --- 配置区 ---
-INPUT_FILE = "/volume1/web/iptv/live/TV/1000_alive.txt"
-OUTPUT_DIR = "/volume1/web/iptv/live/TV/iptv_results"
-M3U_FILE = "/volume1/web/iptv/live/TV/all_channels.m3u"
+INPUT_FILE = "py/1000_alive.txt"
+OUTPUT_DIR = "py//iptv_results"
+M3U_FILE = "py/all_channels.m3u"
 TIMEOUT = 5
 
 if not os.path.exists(OUTPUT_DIR):
