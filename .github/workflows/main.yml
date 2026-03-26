@@ -2,13 +2,12 @@ name: IPTV 酒店源自动扫描与转换
 
 on:
   schedule:
-    - cron: '0 20 * * *' # 北京时间凌晨 4:00 运行 (UTC 20:00)
-  workflow_dispatch:      # 支持在 GitHub 页面手动点击运行
+    - cron: '0 20 * * *' 
+  workflow_dispatch:      
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # 设置超时时间，防止因扫描任务过大导致工作流死循环
     timeout-minutes: 120 
 
     steps:
@@ -19,37 +18,36 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        cache: 'pip' # 自动缓存依赖
+        # 移除了 cache: 'pip'，因为你没有 requirements.txt
 
     - name: 安装必要依赖
       run: |
         python -m pip install --upgrade pip
         pip install requests
 
+    - name: 确保目录存在
+      run: |
+        mkdir -p py/iptv_results
+
     - name: 执行扫描脚本 (scan.py)
       run: |
-        # 使用 -u 参数实现实时日志输出
+        # 确保 1000.txt 存在，如果不存在则创建一个空的防止报错
+        touch py/1000.txt
         python -u py/scan.py
 
     - name: 执行转换补全脚本 (convert.py)
       run: |
         python -u py/convert.py
 
-    - name: 检查生成的文件
-      run: |
-        ls -lh py/
-        if [ -f "py/all_channels.m3u" ]; then
-          echo "✅ M3U 文件已生成"
-        else
-          echo "❌ 文件生成失败"
-        fi
-
-    - name: 提交并推送结果到仓库
+    - name: 提交并推送结果
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        # 强制添加 py 文件夹下的所有新生成文件
-        git add py/*.txt py/*.m3u py/iptv_results/*.txt || true
-        # 只有在有变动时才提交
-        git commit -m "自动更新: $(date +'%Y-%m-%d %H:%M:%S') [酒店源扫描]" || exit 0
-        git push
+        git add py/
+        # 检查是否有文件变动，防止空提交报错
+        if git diff --staged --quiet; then
+          echo "没有检测到任何文件变动，跳过推送。"
+        else
+          git commit -m "自动更新: $(date +'%Y-%m-%d %H:%M:%S')"
+          git push
+        fi
