@@ -1,19 +1,20 @@
 import asyncio
 import aiohttp
 import os
+import json
 
 # --- 配置 ---
 TARGET_PREFIX = "221.232"
 TARGET_PORT = 7777
+# 这里的 1000.json 似乎是总表
 CHECK_PATH = "/iptv/live/1000.json?key=txipt"
 OUTPUT_FILE = "py/hb_telecom_detected.m3u"
-CONCURRENCY = 1500  # 提高并发，因为第一步只是握手检测
+CONCURRENCY = 1000 
 
 async def check_host_alive(semaphore, ip):
-    """第一步：快速检测端口是否开放 (代替 Ping)"""
+    """第一步：检测 TCP 端口存活"""
     async with semaphore:
         try:
-            # 尝试建立 TCP 连接，超时设短一点
             fut = asyncio.open_connection(ip, TARGET_PORT)
             reader, writer = await asyncio.wait_for(fut, timeout=1.5)
             writer.close()
@@ -22,57 +23,63 @@ async def check_host_alive(semaphore, ip):
         except:
             return None
 
-async def verify_iptv_service(session, ip):
-    """第二步：对存活主机进行业务路径验证"""
+async def fetch_and_parse_json(session, ip):
+    """第二步：访问 JSON 并解析频道列表"""
     url = f"http://{ip}:{TARGET_PORT}{CHECK_PATH}"
     try:
-        async with session.get(url, timeout=3) as response:
+        async with session.get(url, timeout=4) as response:
             if response.status == 200:
-                text = await response.text()
-                # 湖北电信酒店源通常返回包含 "data" 或 "channel" 的 JSON
-                if len(text) > 100: 
-                    return ip
+                res_json = await response.json(content_type=None)
+                if res_json.get("code") == 0 and "data" in res_json:
+                    channels = []
+                    for item in res_json["data"]:
+                        ch_name = item.get("name")
+                        ch_url = item.get("url")
+                        if ch_name and ch_url:
+                            # 拼接完整地址
+                            full_url = f"http://{ip}:{TARGET_PORT}{ch_url}"
+                            channels.append({
+                                "name": ch_name,
+                                "url": full_url,
+                                "ip": ip
+                            })
+                    return channels
     except:
         pass
     return None
 
 async def main():
-    print(f"🚀 开始扫描 {TARGET_PREFIX}.0.0/16 存活主机...")
+    print(f"🚀 开始爆破 {TARGET_PREFIX}.0.0/16 ...")
     ips_to_scan = [f"{TARGET_PREFIX}.{i}.{j}" for i in range(0, 256) for j in range(0, 256)]
     
     semaphore = asyncio.Semaphore(CONCURRENCY)
     
-    # --- 第一阶段：筛选存活主机 ---
+    # 1. 找存活 IP
     alive_tasks = [check_host_alive(semaphore, ip) for ip in ips_to_scan]
-    alive_ips = []
-    for f in asyncio.as_completed(alive_tasks):
-        res = await f
-        if res:
-            alive_ips.append(res)
-            
-    print(f"📡 探测完成，发现 {len(alive_ips)} 个主机开启了 {TARGET_PORT} 端口。")
+    alive_ips = [res for res in await asyncio.gather(*alive_tasks) if res]
+    print(f"📡 发现 {len(alive_ips)} 个潜在服务器。")
 
-    if not alive_ips:
-        print("终止：未发现任何潜在主机。")
-        return
+    if not alive_ips: return
 
-    # --- 第二阶段：业务逻辑验证 ---
-    print("🧪 正在执行 IPTV 业务逻辑验证...")
-    results = []
+    # 2. 获取 JSON 内容
+    all_extracted_channels = []
     async with aiohttp.ClientSession() as session:
-        verify_tasks = [verify_iptv_service(session, ip) for ip in alive_ips]
-        verified_results = await asyncio.gather(*verify_tasks)
-        results = [ip for ip in verified_results if ip]
+        parse_tasks = [fetch_and_parse_json(session, ip) for ip in alive_ips]
+        parsed_results = await asyncio.gather(*parse_tasks)
+        for res in parsed_results:
+            if res: all_extracted_channels.extend(res)
 
-    # --- 第三阶段：保存结果 ---
-    os.makedirs("py", exist_ok=True)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("#EXTM3U\n")
-        for ip in sorted(results):
-            f.write(f"#EXTINF:-1,湖北电信_{ip}\n")
-            f.write(f"http://{ip}:{TARGET_PORT}/tsfile/live/0001_1.m3u8?key=txipt&playlive=1&authid=0\n")
-            
-    print(f"✨ 爆破成功！共保存 {len(results)} 个有效源至 {OUTPUT_FILE}")
+    # 3. 写入 M3U (按 IP 分组排序)
+    if all_extracted_channels:
+        os.makedirs("py", exist_ok=True)
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write("#EXTM3U\n")
+            for ch in all_extracted_channels:
+                f.write(f"#EXTINF:-1,湖北电信_{ch['ip']}_{ch['name']}\n")
+                f.write(f"{ch['url']}\n")
+        print(f"✨ 成功！共提取到 {len(all_extracted_channels)} 个频道，保存至 {OUTPUT_FILE}")
+    else:
+        print("❌ 未能从存活服务器中解析出有效的频道数据。")
 
 if __name__ == "__main__":
     asyncio.run(main())
