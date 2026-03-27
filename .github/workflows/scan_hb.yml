@@ -1,1 +1,32 @@
-scan_hb.yml
+name: 湖北电信定向爆破 (快扫版)
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # 每天凌晨 3 点 (北京时间)
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install aiohttp
+
+      - name: Run Scanner
+        run: python py/scan_hb_telecom.py
+
+      - name: Commit results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add py/hb_telecom_detected.m3u
+          git commit -m "Update scanned sources $(date)" || exit 0
+          git push
