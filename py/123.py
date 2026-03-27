@@ -4,6 +4,8 @@ import random
 import re
 import os
 import json
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
