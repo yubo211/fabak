@@ -51,8 +51,6 @@ def clean_and_weight(name):
     # 3. 其他卫视
     if "卫视" in name:
         return name, 200
-        
-    return name, 999 # 地方台排最后
 
 async def check_host_alive(semaphore, ip):
     async with semaphore:
@@ -65,22 +63,38 @@ async def check_host_alive(semaphore, ip):
         except: return None
 
 async def fetch_all_data(session, ip_list):
-    """抓取所有历史 IP 和新 IP 的最新数据"""
-    results = []
-    tasks = []
-    for ip in ip_list:
-        url = f"http://{ip}:{TARGET_PORT}{CHECK_PATH}"
-        tasks.append(session.get(url, timeout=5))
+def clean_and_weight(name):
+    """规范频道名并计算排序权重 (修复 CCTV5+ 丢失问题)"""
+    name_upper = name.upper().replace(" ", "").replace("-", "") # 预处理：转大写，去空格和连字符
     
-    responses = await asyncio.gather(*tasks, return_exceptions=True)
-    for i, resp in enumerate(responses):
-        if isinstance(resp, aiohttp.ClientResponse) and resp.status == 200:
-            try:
-                data = await resp.json(content_type=None)
-                if data.get("code") == 0:
-                    for item in data["data"]:
-                        raw_name = item.get("name", "")
-                        clean_name, weight = clean_and_weight(raw_name)
+    # 1. 优先处理 CCTV5+ (防止被匹配成 CCTV5)
+    if "CCTV5+" in name_upper or "CCTV5体育赛事" in name_upper:
+        return "CCTV5+", 5.5 # 权重设为 5.5，使其排在 CCTV5 和 CCTV6 之间
+
+    # 2. 规范其他 CCTV
+    if "CCTV" in name_upper:
+        match = re.search(r'CCTV(\d+)', name_upper)
+        if match:
+            num = match.group(1)
+            # 格式化为 CCTV1, CCTV2...
+            return f"CCTV{num}", int(num)
+        return name, 99 # 无法解析数字的 CCTV 排最后
+
+    # 3. 卫视优先级排序
+    for i, province in enumerate(PROVINCIAL_LOGIC):
+        if province in name:
+            return province, 100 + i 
+            
+    # 4. 其他卫视
+    if "卫视" in name:
+        return name, 200
+        
+    return name, 999 # 地方/其他
+
+# --- 修改 fetch_all_data 中的分类逻辑 ---
+# 确保 5.5 这种浮点数也能被正确归入“央视”
+if weight < 100: 
+    cat = "央视")
                         
                         # 确定分类
                         if weight < 100: cat = "央视"
