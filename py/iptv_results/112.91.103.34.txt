@@ -1,0 +1,2 @@
+活动直播,http://112.91.103.34:9919/tsfile/live/1000_1.m3u8?key=txiptv&playlive=1&authid=0
+晚修,http://112.91.103.34:9919/tsfile/live/1001_1.m3u8?key=txiptv&playlive=1&authid=0
