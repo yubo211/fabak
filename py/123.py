@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
 # --- 配置 ---
-SOURCE_M3U_URL = "https://raw.githubusercontent.com/yubo211/fabak/refs/heads/main/py/hotel_only.m3u"
+SOURCE_M3U = "https://raw.githubusercontent.com/yubo211/fabak/refs/heads/main/py/hotel_only.m3u"
 OUTPUT_TXT = "/volume1/web/iptv/traffic_report.txt"
 OUTPUT_JSON = "/volume1/web/iptv/traffic_summary.json"
 TEST_DURATION = 30  # 每个 ID 测试 30 秒
@@ -134,7 +134,7 @@ def save_reports(results, group_summary):
 def main():
     print(f"正在从 GitHub 获取 M3U 并解析...")
     try:
-        r = requests.get(SOURCE_M3U_URL, timeout=10)
+        r = requests.get(SOURCE_M3U, timeout=10)
         content = r.text
     except:
         print(f"错误: 无法下载源 M3U 文件")
