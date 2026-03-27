@@ -1,4 +1,4 @@
-name: 湖北电信定向爆破 (快扫版)
+name:  快扫版
 
 on:
   schedule:
@@ -27,6 +27,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add py/hb_telecom_detected.m3u
-          git commit -m "Update scanned sources $(date)" || exit 0
+          # 同时添加 M3U 和 历史 JSON
+          git add py/hb_telecom_detected.m3u py/scanned_history.json
+          git commit -m "Update scanned sources and history $(date)" || exit 0
           git push
