@@ -35,11 +35,16 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 检查文件是否存在并提交
+          # 1. 尝试添加并提交
           if [ -f "py/traffic_report.txt" ]; then
             git add py/traffic_report.txt py/traffic_summary.json
-            git commit -m "Update IPTV Traffic Report $(date +'%Y-%m-%d %H:%M')" || echo "No changes"
-            git push
+            git commit -m "Update IPTV Traffic Report $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+            
+            # 2. 关键步骤：先拉取远程更新，采用 rebase 模式避免产生额外的 merge commit
+            git pull --rebase origin main
+            
+            # 3. 再次推送
+            git push origin main
           else
             echo "Error: Report files were not generated."
             exit 1
