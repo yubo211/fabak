@@ -2,9 +2,8 @@ name: IPTV Traffic Speed Test
 
 on:
   schedule:
-    # 每 3 天的中午 12 点运行一次 (UTC)
     - cron: '0 12 */3 * *'
-  workflow_dispatch: # 支持手动点击按钮运行
+  workflow_dispatch:
 
 jobs:
   test_speed:
@@ -15,7 +14,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/checkout@v4
+        uses: actions/setup-python@v5  # 注意这里必须是 setup-python
         with:
           python-version: '3.10'
 
@@ -26,7 +25,8 @@ jobs:
 
       - name: Run Traffic Test Script
         run: |
-          # 确保脚本路径正确，假设你的脚本名叫 traffic_test.py
+          # 运行前先确认文件是否存在
+          ls -R py/
           python py/traffic_test.py
         env:
           PYTHONUNBUFFERED: 1
@@ -36,11 +36,11 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 检查是否有文件变化，避免空提交
-          git add py/traffic_report.txt py/traffic_summary.json
-          if git diff --staged --quiet; then
-            echo "No changes in reports. Skipping commit."
-          else
-            git commit -m "Update IPTV Traffic Report $(date +'%Y-%m-%d %H:%M')"
+          # 只有文件存在时才执行提交，防止报错
+          if [ -f "py/traffic_report.txt" ]; then
+            git add py/traffic_report.txt py/traffic_summary.json
+            git commit -m "Update IPTV Traffic Report $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
             git push
+          else
+            echo "Report files not found, skipping git push."
           fi
