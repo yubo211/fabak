@@ -25,9 +25,8 @@ jobs:
 
       - name: Commit results
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          # 同时添加 M3U 和 历史 JSON
-          git add py/hb_telecom_detected.m3u py/scanned_history.json
-          git commit -m "Update scanned sources and history $(date)" || exit 0
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Action"
+          git add py/hb_telecom.m3u py/hb_telecom_tvbox.txt py/scanned_history.json
+          git commit -m "Update IPTV sources $(date)" || exit 0
           git push
