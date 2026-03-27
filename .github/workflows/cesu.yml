@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5  # 注意这里必须是 setup-python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -23,24 +23,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Run Traffic Test Script
+      - name: Run Traffic Test
         run: |
-          # 运行前先确认文件是否存在
-          ls -R py/
+          # 运行测速脚本
           python py/traffic_test.py
         env:
           PYTHONUNBUFFERED: 1
 
-      - name: Commit and Push Reports
+      - name: Commit and Push Results
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 只有文件存在时才执行提交，防止报错
+          # 检查文件是否存在并提交
           if [ -f "py/traffic_report.txt" ]; then
             git add py/traffic_report.txt py/traffic_summary.json
-            git commit -m "Update IPTV Traffic Report $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+            git commit -m "Update IPTV Traffic Report $(date +'%Y-%m-%d %H:%M')" || echo "No changes"
             git push
           else
-            echo "Report files not found, skipping git push."
+            echo "Error: Report files were not generated."
+            exit 1
           fi
