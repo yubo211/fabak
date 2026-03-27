@@ -8,9 +8,9 @@ from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
 # --- 配置 ---
-SOURCE_M3U = "https://raw.githubusercontent.com/yubo211/fabak/refs/heads/main/py/hotel_only.m3u"
-OUTPUT_TXT = "/volume1/web/iptv/traffic_report.txt"
-OUTPUT_JSON = "/volume1/web/iptv/traffic_summary.json"
+SOURCE_M3U = "py/hotel_only.m3u"
+OUTPUT_TXT = "py/traffic_report.txt"
+OUTPUT_JSON = "py/traffic_summary.json"
 TEST_DURATION = 30  # 每个 ID 测试 30 秒
 SAMPLES_PER_IP = 3  # 每个 IP 随机抽 3 个 ID 
 MAX_WORKERS = 10    # 并行线程数 (GitHub 环境不宜过大)
