@@ -5,7 +5,7 @@ import os
 # --- 配置 ---
 TARGET_PREFIX = "221.232"
 TARGET_PORT = 7777
-CHECK_PATH = "/iptv/live/1001.json?key=txipt"
+CHECK_PATH = "/iptv/live/1000.json?key=txipt"
 OUTPUT_FILE = "py/hb_telecom_detected.m3u"
 CONCURRENCY = 1500  # 提高并发，因为第一步只是握手检测
 
